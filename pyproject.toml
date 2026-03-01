@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0,<70.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guardian-ltsm"
+version = "0.1.0"
+keywords = ["bitmap", "converter", "embedded", "lcd", "gui"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+]
+description = "Bitmap conversion and visualization tool for embedded systems"
+readme = { file = "README.md", content-type = "text/markdown" }
+authors = [
+  { name = "Gavin Lyons", email = "glyons66@hotmail.com" }
+]
+requires-python = ">=3.8"
+
+
+[project.scripts]
+guardian = "guardian_ltsm.guardian_main:main"
+
+[project.urls]
+Homepage = "https://github.com/gavinlyonsrepo/Guardian_LTSM"
+Issues = "https://github.com/gavinlyonsrepo/Guardian_LTSM/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

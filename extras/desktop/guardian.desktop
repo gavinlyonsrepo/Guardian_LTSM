@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Guardian
+GenericName=Guardian
+Comment=Bitmap converter tool
+Exec=guardian
+Icon=guardian
+Categories=Utility;Application;Development;
+Type=Application
+Terminal=false
+Name[en_IE]=guardian.desktop

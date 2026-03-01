@@ -1,0 +1,6 @@
+.pylintrc
+stuff/
+.venv/
+__pycache__/
+dist/
+src/colossus_ltsm.egg-info/
