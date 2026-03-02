@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import scrolledtext, messagebox
 import webbrowser
 from guardian_ltsm.settings import settings, CL_CONFIG_PATH
-from guardian_ltsm.one_bit_convert import OneBitConvert
+from guardian_ltsm.one_bit_convert import OneBitConverter
 from guardian_ltsm import __version__
 
 class GuardianApp(tk.Tk):
@@ -78,14 +78,14 @@ class MainMenu(tk.Frame):
         button_width = 28  # uniform width for all buttons
         btn_font_convert = tk.Button(
             self,
-            text="1-bit Bitmap to data",
+            text="1-bit image to data",
             width=button_width,
             command=lambda: self.open_one_bit_convert(False)
         )
         btn_font_convert.pack(pady=16)
         btn_font_Data = tk.Button(
             self,
-            text="Data to 1-bit Bitmap",
+            text="Data to 1-bit image",
             width=button_width,
             command=lambda: self.open_one_bit_convert(True)
         )
@@ -182,10 +182,10 @@ class OneBitConvertPage(tk.Frame):
         self.controller = controller
         self.mode = data_mode  # True or False
         if self.mode:
-            print("Data → Bitmap mode")
+            print("Data → image mode")
         else:
-            print("Bitmap → Data mode")
-        self.viewer = OneBitConvert(self, controller, data_mode)
+            print("image → Data mode")
+        self.viewer = OneBitConverter(self, controller, data_mode)
         self.viewer.pack(fill="both", expand=True)
         btn_back = tk.Button(
             self, text="Back to Menu",
