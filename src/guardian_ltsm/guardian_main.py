@@ -3,7 +3,6 @@
     Contains the main application class and page management.
 """
 
-import os
 import sys
 from pathlib import Path
 import subprocess
@@ -11,6 +10,7 @@ import tkinter as tk
 from tkinter import scrolledtext, messagebox
 import webbrowser
 from guardian_ltsm.settings import settings, CL_CONFIG_PATH
+from guardian_ltsm.one_bit_convert import OneBitConvert
 from guardian_ltsm import __version__
 
 class GuardianApp(tk.Tk):
@@ -73,10 +73,23 @@ class MainMenu(tk.Frame):
         self.controller = controller
         label = tk.Label(self, text="Main Menu", font=("Arial", 24))
         label.pack(pady=20)
-        
+
         # buttons section
         button_width = 28  # uniform width for all buttons
-        
+        btn_font_convert = tk.Button(
+            self,
+            text="1-bit Bitmap to data",
+            width=button_width,
+            command=lambda: self.open_one_bit_convert(False)
+        )
+        btn_font_convert.pack(pady=16)
+        btn_font_Data = tk.Button(
+            self,
+            text="Data to 1-bit Bitmap",
+            width=button_width,
+            command=lambda: self.open_one_bit_convert(True)
+        )
+        btn_font_Data.pack(pady=16)
         btn_settings = tk.Button(
             self,
             text="Settings",
@@ -119,7 +132,21 @@ class MainMenu(tk.Frame):
                 state="disabled",
                 text="Desktop Entry Installed"
             )
-
+    def open_one_bit_convert(self, data_mode):
+        """ Open the Font Convert Page dynamically. """
+        # Destroy old convertPage if exists
+        for widget in self.controller.container.winfo_children():
+            if isinstance(widget, OneBitConvertPage):
+                widget.destroy()
+        # Create new ConvertPage dynamically
+        frame = OneBitConvertPage(
+                parent=self.controller.container,
+                controller=self.controller,
+                data_mode=data_mode
+        )
+        frame.grid(row=0, column=0, sticky="nsew")
+        self.controller.frames[OneBitConvertPage] = frame
+        frame.tkraise()
 
     def open_settings(self):
         """ Open the Settings Page dynamically. """
@@ -146,6 +173,25 @@ class MainMenu(tk.Frame):
         frame.grid(row=0, column=0, sticky="nsew")
         self.controller.frames[AboutPage] = frame
         frame.tkraise()
+
+
+class OneBitConvertPage(tk.Frame):
+
+    def __init__(self, parent, controller, data_mode):
+        super().__init__(parent)
+        self.controller = controller
+        self.mode = data_mode  # True or False
+        if self.mode:
+            print("Data → Bitmap mode")
+        else:
+            print("Bitmap → Data mode")
+        self.viewer = OneBitConvert(self, controller, data_mode)
+        self.viewer.pack(fill="both", expand=True)
+        btn_back = tk.Button(
+            self, text="Back to Menu",
+            command=lambda: controller.show_frame(MainMenu)
+        )
+        btn_back.pack(pady=16)
 
 class SettingsPage(tk.Frame):
     """ Page for editing application settings."""
@@ -266,7 +312,7 @@ def install_desktop_entry():
                 print(f"INFO:: {filename} already exists in {target_dir}")
                 continue
             result = subprocess.run(
-                ["curl", "-L", "-s", "--fail", "-o", str(target_file), url]
+                ["curl", "-L", "-s", "--fail", "-o", str(target_file), url], check=True
             )
             if result.returncode != 0:
                 raise RuntimeError(f"curl failed downloading {filename}")
@@ -285,15 +331,15 @@ def install_desktop_entry():
             "Installation failed.\nCheck network or curl availability."
         )
         return False
-    
+
 def desktop_entry_installed():
-	"""Return True if desktop entry + icon already exist (Linux only)."""
-	if not sys.platform.startswith("linux"):
-		return False
-	home = Path.home()
-	icon_file = home / ".local/share/icons/guardian.png"
-	desktop_file = home / ".local/share/applications/guardian.desktop"
-	return icon_file.exists() and desktop_file.exists()
+    """Return True if desktop entry + icon already exist (Linux only)."""
+    if not sys.platform.startswith("linux"):
+        return False
+    home = Path.home()
+    icon_file = home / ".local/share/icons/guardian.png"
+    desktop_file = home / ".local/share/applications/guardian.desktop"
+    return icon_file.exists() and desktop_file.exists()
 
 
 def main():
