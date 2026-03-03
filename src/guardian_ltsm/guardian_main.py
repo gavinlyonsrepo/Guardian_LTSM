@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 import subprocess
 import tkinter as tk
-from tkinter import scrolledtext, messagebox
+from tkinter import scrolledtext, messagebox, TclError
 import webbrowser
 from guardian_ltsm.settings import settings, CL_CONFIG_PATH
 from guardian_ltsm.one_bit_convert import OneBitConverter
@@ -27,11 +27,13 @@ class GuardianApp(tk.Tk):
                 try:
                     icon_img = tk.PhotoImage(file=str(icon_path))
                     self.iconphoto(True, icon_img)
-                    self._icon_ref = icon_img  # prevent garbage collection
-                except Exception as e:
-                    print("Warning: could not set window icon:", e)
+                    self._icon_ref = icon_img  # prevent GC
+                except TclError as e:
+                    print("Warning: could not set window icon (invalid or unsupported image):", e)
+                except OSError as e:   # covers FileNotFound + permission issues
+                    print("Warning: could not read icon file:", e)
         self.title("Guardian")
-        self.geometry("800x700")
+        self.geometry("800x800")
 
         # Container frame to hold pages
         self.container = tk.Frame(self)
@@ -83,13 +85,13 @@ class MainMenu(tk.Frame):
             command=lambda: self.open_one_bit_convert(False)
         )
         btn_font_convert.pack(pady=16)
-        btn_font_Data = tk.Button(
+        btn_font_data = tk.Button(
             self,
             text="Data to 1-bit image",
             width=button_width,
             command=lambda: self.open_one_bit_convert(True)
         )
-        btn_font_Data.pack(pady=16)
+        btn_font_data.pack(pady=16)
         btn_settings = tk.Button(
             self,
             text="Settings",
@@ -176,7 +178,7 @@ class MainMenu(tk.Frame):
 
 
 class OneBitConvertPage(tk.Frame):
-
+    """ Page for converting between 1-bit images & data """
     def __init__(self, parent, controller, data_mode):
         super().__init__(parent)
         self.controller = controller
@@ -195,7 +197,6 @@ class OneBitConvertPage(tk.Frame):
 
 class SettingsPage(tk.Frame):
     """ Page for editing application settings."""
-
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
@@ -229,8 +230,10 @@ class SettingsPage(tk.Frame):
                 data = f.read()
             self.text.delete("1.0", tk.END)
             self.text.insert(tk.END, data)
-        except Exception as e:
-            messagebox.showerror("Error", f"Could not load settings:\n{e}")
+        except FileNotFoundError:
+            messagebox.showerror("Error", "Config file not found.\nUsing empty/default settings.")
+        except (PermissionError, OSError) as e:
+            messagebox.showerror("Error", f"Could not read config file:\n{e}")
 
     def save(self):
         """ Save the current text area content back to the config file."""
@@ -239,7 +242,7 @@ class SettingsPage(tk.Frame):
                 f.write(self.text.get("1.0", tk.END).strip() + "\n")
             messagebox.showinfo("Saved", "Settings saved successfully.")
             settings.load()  # Reload settings to update in memory
-        except Exception as e:
+        except (FileNotFoundError, PermissionError, IsADirectoryError, OSError) as e:
             messagebox.showerror("Error", f"Could not save settings:\n{e}")
 
 
@@ -263,7 +266,7 @@ class AboutPage(tk.Frame):
         text.pack(padx=10, pady=10, fill="both", expand=True)
 
         # Make URL clickable
-        def open_url(event):
+        def open_url(_):
             webbrowser.open("https://github.com/gavinlyonsrepo/Guardian_LTSM")
 
         text.tag_add("link", "4.5", "4.end")  # line 4, chars 5 to end
@@ -297,12 +300,14 @@ def install_desktop_entry():
             (
                 "guardian.png",
                 icon_path,
-                "https://raw.githubusercontent.com/gavinlyonsrepo/Guardian_LTSM/main/extras/desktop/guardian.png"
+                "https://raw.githubusercontent.com/gavinlyonsrepo/"
+                "Guardian_LTSM/main/extras/desktop/guardian.png"
             ),
             (
                 "guardian.desktop",
                 app_path,
-                "https://raw.githubusercontent.com/gavinlyonsrepo/Guardian_LTSM/main/extras/desktop/guardian.desktop"
+                "https://raw.githubusercontent.com/gavinlyonsrepo/"
+                "Guardian_LTSM/main/extras/desktop/guardian.desktop"
             )
         ]
 
@@ -324,7 +329,7 @@ def install_desktop_entry():
         )
         return True
 
-    except Exception as error:
+    except Exception as error:  # pylint: disable=broad-exception-caught
         print("Error installing desktop entry:", error)
         messagebox.showerror(
             "Desktop Entry Installation Failed",
