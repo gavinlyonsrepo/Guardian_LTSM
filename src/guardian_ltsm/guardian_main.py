@@ -9,8 +9,10 @@ import subprocess
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, TclError
 import webbrowser
+
 from guardian_ltsm.settings import settings, CL_CONFIG_PATH
 from guardian_ltsm.one_bit_convert import OneBitConverter
+from guardian_ltsm.colour_bit_convert import ColourBitConverter
 from guardian_ltsm import __version__
 
 class GuardianApp(tk.Tk):
@@ -92,6 +94,13 @@ class MainMenu(tk.Frame):
             command=lambda: self.open_one_bit_convert(True)
         )
         btn_font_data.pack(pady=16)
+        btn_font_data = tk.Button(
+            self,
+            text="Colour image to data",
+            width=button_width,
+            command=self.open_colour_image_convert
+        )
+        btn_font_data.pack(pady=16)
         btn_settings = tk.Button(
             self,
             text="Settings",
@@ -150,6 +159,21 @@ class MainMenu(tk.Frame):
         self.controller.frames[OneBitConvertPage] = frame
         frame.tkraise()
 
+    def open_colour_image_convert(self):
+        """ Open the colour image convert page dynamically. """
+        # Destroy old convertPage if exists
+        for widget in self.controller.container.winfo_children():
+            if isinstance(widget, ColourConvertPage):
+                widget.destroy()
+        # Create new ConvertPage dynamically
+        frame = ColourConvertPage(
+                parent=self.controller.container,
+                controller=self.controller,
+        )
+        frame.grid(row=0, column=0, sticky="nsew")
+        self.controller.frames[ColourConvertPage] = frame
+        frame.tkraise()
+
     def open_settings(self):
         """ Open the Settings Page dynamically. """
         # Destroy old SettingsPage if exists
@@ -194,6 +218,20 @@ class OneBitConvertPage(tk.Frame):
             command=lambda: controller.show_frame(MainMenu)
         )
         btn_back.pack(pady=16)
+
+class ColourConvertPage(tk.Frame):
+    """ Page for converting between 16-bit images to data """
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        btn_back = tk.Button(
+            self, text="← Back to Menu",
+            command=lambda: controller.show_frame(MainMenu)
+        )
+        btn_back.pack(anchor="nw", padx=10, pady=5)
+        btn_back.pack(pady=8)
+        self.viewer = ColourBitConverter(self, controller)
+        self.viewer.pack(fill="both", expand=True)
 
 class SettingsPage(tk.Frame):
     """ Page for editing application settings."""
