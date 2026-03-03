@@ -17,7 +17,9 @@ authors = [
   { name = "Gavin Lyons", email = "glyons66@hotmail.com" }
 ]
 requires-python = ">=3.8"
-
+dependencies = [
+  "Pillow",
+]
 
 [project.scripts]
 guardian = "guardian_ltsm.guardian_main:main"
