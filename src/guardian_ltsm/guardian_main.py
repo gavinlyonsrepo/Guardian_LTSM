@@ -31,11 +31,13 @@ class GuardianApp(tk.Tk):
                     self.iconphoto(True, icon_img)
                     self._icon_ref = icon_img  # prevent GC
                 except TclError as e:
-                    print("Warning: could not set window icon (invalid or unsupported image):", e)
+                    print("[Main] Warning: could not set window icon "
+                    "(invalid or unsupported image):", e)
                 except OSError as e:   # covers FileNotFound + permission issues
-                    print("Warning: could not read icon file:", e)
+                    print("[Main] Warning: could not read icon file:", e)
         self.title("Guardian")
-        self.geometry("800x800")
+        screen_resolution = settings.getstr("Display", "screen_resolution", fallback=str("1000x800"))
+        self.geometry(screen_resolution)
 
         # Container frame to hold pages
         self.container = tk.Frame(self)
@@ -208,9 +210,9 @@ class OneBitConvertPage(tk.Frame):
         self.controller = controller
         self.mode = data_mode  # True or False
         if self.mode:
-            print("Data → image mode")
+            print("[Main] Data → 1-bit Image mode selected")
         else:
-            print("image → Data mode")
+            print("[Main] 1-bit Image → Data mode selected")
         self.viewer = OneBitConverter(self, controller, data_mode)
         self.viewer.pack(fill="both", expand=True)
         btn_back = tk.Button(
@@ -352,14 +354,14 @@ def install_desktop_entry():
         for filename, target_dir, url in files:
             target_file = target_dir / filename
             if target_file.exists():
-                print(f"INFO:: {filename} already exists in {target_dir}")
+                print(f"[Main] INFO:: {filename} already exists in {target_dir}")
                 continue
             result = subprocess.run(
                 ["curl", "-L", "-s", "--fail", "-o", str(target_file), url], check=True
             )
             if result.returncode != 0:
-                raise RuntimeError(f"curl failed downloading {filename}")
-            print(f"INFO:: {filename} installed in {target_dir}")
+                raise RuntimeError(f"[Main] Error, curl failed downloading {filename}")
+            print(f"[Main] INFO:: {filename} installed in {target_dir}")
 
         messagebox.showinfo(
             "Desktop Entry Installation",
@@ -368,7 +370,7 @@ def install_desktop_entry():
         return True
 
     except Exception as error:  # pylint: disable=broad-exception-caught
-        print("Error installing desktop entry:", error)
+        print("[Main] Error installing desktop entry:", error)
         messagebox.showerror(
             "Desktop Entry Installation Failed",
             "Installation failed.\nCheck network or curl availability."
@@ -387,13 +389,13 @@ def desktop_entry_installed():
 
 def main():
     """ Entry point for the Guardian application."""
-    print(f"Guardian LTSM version {__version__} starting.")
     app = GuardianApp()
     app.mainloop()
-    print("Guardian LTSM exited.")
 
 
 if __name__ == "__main__":
+    print(f"[Main] Guardian LTSM version {__version__} starting.")
     main()
+    print("[Main] Guardian LTSM exited.")
 else:
-    print("Guardian script loaded as module, This is a script")
+    print("[Main] Guardian script loaded as module")

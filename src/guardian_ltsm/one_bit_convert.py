@@ -29,7 +29,6 @@ class OneBitCore:
         """  Packs the 2D bitmap into a byte array
         based on the specified addressing mode."""
         result = []
-
         if not vertical:
             # Horizontal addressing
             bytes_per_row = (self.width + 7) // 8
@@ -56,7 +55,6 @@ class OneBitCore:
                     if swap_bits:
                         byte = int(f"{byte:08b}"[::-1], 2)
                     result.append(byte)
-
         return result
 
     def image_to_bitmap(self, pil_image):
@@ -66,7 +64,6 @@ class OneBitCore:
         gray = pil_image.convert("L")
         self.width, self.height = gray.size
         self.bitmap_2d = []
-
         for y in range(self.height):
             row = []
             for x in range(self.width):
@@ -81,12 +78,10 @@ class OneBitCore:
     def bitmap_to_image(self):
         """ Converts the 2D bitmap back to a PIL image for preview or saving. """
         img = Image.new("1", (self.width, self.height))
-
         for y in range(self.height):
             for x in range(self.width):
                 p = 255 if self.bitmap_2d[y][x] else 0
                 img.putpixel((x, y), p)
-
         return img
 
     def unpack_bits(self, raw_bytes):
@@ -115,7 +110,6 @@ class OneBitCore:
         else:
             # Vertical addressing - pages across width first
             bytes_per_col = (self.height + 7) // 8
-
             for yb in range(bytes_per_col):      # page first
                 for x in range(self.width):      # then column
                     if index >= len(raw_bytes):
@@ -133,7 +127,7 @@ class OneBitCore:
 
     def calc_data_size(self):
         """
-        Issue 3 fix: calculate correct byte count based on addressing mode.
+        Calculate correct byte count based on addressing mode.
         Horizontal: ceil(width/8) * height
         Vertical:   width * ceil(height/8)
         """
@@ -240,7 +234,7 @@ class OneBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,
                 from_=0,
                 to=255,
                 orient="horizontal",
-                variable=self.threshold_var,        # Issue 2 fix: bind directly to var
+                variable=self.threshold_var,
                 command=self.on_threshold_change
             )
             self.threshold_slider.pack(fill="x", padx=5)
@@ -251,50 +245,48 @@ class OneBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,
                 variable=self.invert_var,
                 command=self.refresh
             ).pack(anchor="w", padx=5, pady=2)
-        else: # OUTPUT SETTINGS (image-to-data mode only)
-            if not self.data_mode:
-                out_frame = tk.LabelFrame(self, text="Output Settings")
-                out_frame.pack(fill="x", padx=10, pady=5)
+            # OUTPUT SETTINGS (image-to-data mode only)
+            out_frame = tk.LabelFrame(self, text="Output Settings")
+            out_frame.pack(fill="x", padx=10, pady=5)
+            # Row 1: image name and file name
+            row1 = tk.Frame(out_frame)
+            row1.pack(fill="x", padx=5, pady=3)
+            tk.Label(row1, text="Image Name:").pack(side="left")
+            self.image_name_var = tk.StringVar(value="my_image")
+            tk.Entry(row1, textvariable=self.image_name_var, width=15).pack(side="left", padx=5)
+            tk.Label(row1, text="File Name:").pack(side="left", padx=(10, 0))
+            self.file_name_var = tk.StringVar(value="my_image")
+            tk.Entry(row1, textvariable=self.file_name_var, width=15).pack(side="left", padx=5)
 
-                # Row 1: image name and file name
-                row1 = tk.Frame(out_frame)
-                row1.pack(fill="x", padx=5, pady=3)
-                tk.Label(row1, text="Image Name:").pack(side="left")
-                self.image_name_var = tk.StringVar(value="my_image")
-                tk.Entry(row1, textvariable=self.image_name_var, width=15).pack(side="left", padx=5)
-                tk.Label(row1, text="File Name:").pack(side="left", padx=(10, 0))
-                self.file_name_var = tk.StringVar(value="my_image")
-                tk.Entry(row1, textvariable=self.file_name_var, width=15).pack(side="left", padx=5)
+            # Row 2: file type
+            row2 = tk.Frame(out_frame)
+            row2.pack(fill="x", padx=5, pady=3)
+            tk.Label(row2, text="File Type:").pack(side="left")
+            self.file_type_var = tk.StringVar(value=".h")
+            tk.Radiobutton(row2, text=".h",   variable=self.file_type_var,
+                        value=".h" ).pack(side="left", padx=5)
+            tk.Radiobutton(row2, text=".hpp", variable=self.file_type_var,
+                        value=".hpp").pack(side="left", padx=5)
 
-                # Row 2: file type
-                row2 = tk.Frame(out_frame)
-                row2.pack(fill="x", padx=5, pady=3)
-                tk.Label(row2, text="File Type:").pack(side="left")
-                self.file_type_var = tk.StringVar(value=".h")
-                tk.Radiobutton(row2, text=".h",   variable=self.file_type_var,
-                            value=".h" ).pack(side="left", padx=5)
-                tk.Radiobutton(row2, text=".hpp", variable=self.file_type_var,
-                            value=".hpp").pack(side="left", padx=5)
+            # Row 3:
+            row3 = tk.Frame(out_frame)
+            row3.pack(fill="x", padx=5, pady=3)
+            tk.Label(row3, text="Array Style:  const uint8_t name[] = {...};").pack(side="left")
 
-                # Row 3:
-                row3 = tk.Frame(out_frame)
-                row3.pack(fill="x", padx=5, pady=3)
-                tk.Label(row3, text="Array Style:  const uint8_t name[] = {...};").pack(side="left")
+            # Row 4: draw mode and swap bits
+            row4 = tk.Frame(out_frame)
+            row4.pack(fill="x", padx=5, pady=3)
 
-                # Row 4: draw mode and swap bits
-                row4 = tk.Frame(out_frame)
-                row4.pack(fill="x", padx=5, pady=3)
+            tk.Label(row4, text="Draw Mode:").pack(side="left")
+            self.out_addressing_var = tk.StringVar(value="horizontal")
+            tk.Radiobutton(row4, text="Horizontal", variable=self.out_addressing_var,
+                        value="horizontal").pack(side="left", padx=5)
+            tk.Radiobutton(row4, text="Vertical",   variable=self.out_addressing_var,
+                        value="vertical"  ).pack(side="left", padx=5)
 
-                tk.Label(row4, text="Draw Mode:").pack(side="left")
-                self.out_addressing_var = tk.StringVar(value="horizontal")
-                tk.Radiobutton(row4, text="Horizontal", variable=self.out_addressing_var,
-                            value="horizontal").pack(side="left", padx=5)
-                tk.Radiobutton(row4, text="Vertical",   variable=self.out_addressing_var,
-                            value="vertical"  ).pack(side="left", padx=5)
-
-                self.swap_bits_var = tk.BooleanVar(value=False)
-                tk.Checkbutton(row4, text="Swap Bits in Byte",
-                            variable=self.swap_bits_var).pack(side="left", padx=15)
+            self.swap_bits_var = tk.BooleanVar(value=False)
+            tk.Checkbutton(row4, text="Swap Bits in Byte",
+                        variable=self.swap_bits_var).pack(side="left", padx=15)
 
     def open_image_dialog(self):
         """ Opens a file dialog for the user to select an image file."""
@@ -311,7 +303,7 @@ class OneBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,
         )
         if not file_path:
             # User cancelled — go back to main menu rather than showing blank screen
-            print("User cancelled image open dialog.")
+            print("[1bit] User cancelled image open dialog.")
             return
         self.original_image = Image.open(file_path)
         filename      = os.path.basename(file_path)
@@ -337,7 +329,7 @@ class OneBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,
         dialog = tk.Toplevel(self)
         dialog.title("Paste Raw Data")
         def on_cancel():
-            print("User cancelled data input dialog.")
+            print("[1bit] User cancelled data input dialog.")
             dialog.destroy()
         dialog.protocol("WM_DELETE_WINDOW", on_cancel)
         tk.Label(dialog, text="Paste Raw byte array , 0x00").pack()
@@ -369,6 +361,7 @@ class OneBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,
             self.core.width  = int(self.width_entry.get())
             self.core.height = int(self.height_entry.get())
         except ValueError:
+            print("[1bit] Invalid width/height input")
             messagebox.showerror("Error", "Invalid width/height")
             return
 
@@ -377,7 +370,6 @@ class OneBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,
         self.raw_bytes = self.parse_hex_string(self.data_text.get("1.0", tk.END))
         self.core.unpack_bits(self.raw_bytes)
         dialog.destroy()
-        # Issue 3 fix: use calc_data_size() for correct byte count
         data_size = self.core.calc_data_size()
         self.label_name.config(text="Name: N/A")
         self.label_size.config(
@@ -412,15 +404,16 @@ class OneBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,
             defaultextension=".png",
             filetypes=[
                 ("PNG Image", "*.png"),
-                ("BMP Image", "*.bmp"),
                 ("All Files", "*.*")
             ]
         )
         if not file_path:
+            print("[1bit] User cancelled image save dialog.")
             return
 
         img = self.core.bitmap_to_image()
         img.save(file_path)
+        print(f"[1bit] Image saved to: {file_path}")
         messagebox.showinfo("Saved", f"Image saved to:\n{file_path}")
 
 
@@ -489,6 +482,7 @@ class OneBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,
         # Also copy to clipboard for convenience
         self.clipboard_clear()
         self.clipboard_append(output_text)
+        print(f"[1bit] Header saved to: {file_path} and copied to clipboard.")
         messagebox.showinfo("Saved", f"Header saved to:\n{file_path}\n\nAlso copied to clipboard.")
 
 
@@ -533,7 +527,7 @@ class OneBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,
 
     def _update_preview(self):
         img = self.core.bitmap_to_image()
-        # Only shrink, never enlarge — Issue 4: use settings values
+        # Only shrink, never enlarge 
         if img.width > self.preview_w or img.height > self.preview_h:
             img.thumbnail((self.preview_w, self.preview_h))
         photo = ImageTk.PhotoImage(img)
@@ -544,6 +538,6 @@ class OneBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,
 
 
 if __name__ == "__main__":
-    print("This is a module, not a standalone script.")
+    print("[1bit] This is a module, not a standalone script.")
 else:
-    print("one bit image convertor module loaded.")
+    print("[1bit] Module loaded.")

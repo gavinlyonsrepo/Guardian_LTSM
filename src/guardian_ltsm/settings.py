@@ -13,7 +13,8 @@ CL_DEFAULTS_DEBUG = {
 
 CL_DEFAULTS_DISPLAY = {
 	"preview_width": "160",
-	"preview_height": "160"
+	"preview_height": "160",
+    "screen_resolution": str("1000x800")
 }
 
 CL_DEFAULTS_PATHS = {
@@ -58,11 +59,11 @@ class Settings:
 
             # Create file if it doesn't exist
             if not CL_CONFIG_PATH.exists():
-                print("[Settings] Config file not found, creating with defaults.")
+                print("[Settings]  Config file not found, creating with defaults.")
                 self.save()
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            print(f"[Settings] Error loading config: {e}, using defaults")
+            print(f"[Settings]  Error loading config: {e}, using defaults")
             self.config["Debug"] = CL_DEFAULTS_DEBUG.copy()
             self.config["Display"] = CL_DEFAULTS_DISPLAY.copy()
             self.config["Paths"] = CL_DEFAULTS_PATHS.copy()
@@ -74,7 +75,7 @@ class Settings:
             with CL_CONFIG_PATH.open("w", encoding="utf-8") as f:  # ← add encoding!
                 self.config.write(f)
         except (PermissionError, OSError) as e:
-            print(f"[Settings] Error saving config: {e}")
+            print(f"[Settings]  Error saving config: {e}")
 
     def getint(self, section, option, fallback):
         """Get an integer setting with a fallback value."""
@@ -100,6 +101,6 @@ class Settings:
 settings = Settings()
 
 if __name__ == "__main__":
-    print("This is a module, not a standalone script.")
+    print("[Settings] This is a module, not a standalone script.")
 else:
-    print("Settings module loaded.")
+    print("[Settings] module loaded.")

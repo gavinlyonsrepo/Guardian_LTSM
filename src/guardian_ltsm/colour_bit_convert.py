@@ -12,20 +12,26 @@ from dataclasses import dataclass
 from PIL import Image, ImageTk # pylint: disable=no-name-in-module
 from guardian_ltsm.settings import settings
 
-
 LANCZOS = Image.Resampling.LANCZOS  # pylint: disable=no-member
-
-
 
 @dataclass
 class FormatOptions:
-    """Options for formatting raw bytes into a C array string."""
+    """Options for formatting raw bytes into a C array string.
+    Function format_bytes"""
     output_format:  str
     datatype:       str
     image_name:     str
     multiline:      bool
     separate_bytes: bool
     palette_mode:   str
+
+@dataclass
+class ConvertOptions:
+    """Options for converting an image. Function Convert"""
+    palette_mode: str
+    endian:       str
+    resize_w:     str = ""
+    resize_h:     str = ""
 
 
 class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attributes,attribute-defined-outside-init
@@ -36,7 +42,7 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
 
     def __init__(self, parent, controller):
         super().__init__(parent)
-        print("Initializing ColourBitConverter...")
+        print("[cbit] Initializing ColourBitConverter")
         self.controller = controller
         self.original_image = None
         self.raw_bytes      = None
@@ -64,10 +70,12 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         self.data_text          = None
         self.converted_preview_label = None
         self.output_text        = None
+        self.palette_label_to_key = None
+        self.palette_label_var = None
+        self.save_img_format_var = None
         self.core = ColourBitCore()
         self.build_ui()
         self.open_image_dialog()
-
 
     def build_ui(self):
         """ Builds the user interface components. Called during initialization."""
@@ -75,7 +83,6 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         self._build_preview()
         self._build_settings_panels()
         self._build_output_panel()
-
 
     def _build_title_and_info(self):
         tk.Label(self, text="Colour image file conversion ",
@@ -120,27 +127,38 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
 
     def _build_settings_panels(self):
         """Builds the conversion settings panel."""
-
         settings_frame = tk.LabelFrame(self, text="Conversion Settings")
         settings_frame.pack(fill="x", padx=10, pady=5)
-
         # ---- Row 1: Palette mode ----
         row1 = tk.Frame(settings_frame)
         row1.pack(fill="x", padx=5, pady=3)
         tk.Label(row1, text="Palette Mode:").pack(side="left")
         self.palette_var = tk.StringVar(value="RGB565")
         palette_options = [
-            ("8-bit Greyscale",       "L"),
-            ("16-bit RGB565",         "RGB565"),
-            ("24-bit RGB",            "RGB"),
-            ("32-bit RGBA",           "RGBA"),
+            "8-bit Greyscale       (1 byte/pixel)",
+            "8-bit RGB332          (1 byte/pixel)",
+            "15-bit RGB555         (2 bytes/pixel)",
+            "16-bit RGB565         (2 bytes/pixel)",
+            "16-bit BGR565         (2 bytes/pixel)",
+            "24-bit RGB            (3 bytes/pixel)",
+            "32-bit RGBA           (4 bytes/pixel)",
         ]
-        for label, value in palette_options:
-            tk.Radiobutton(
-                row1, text=label,
-                variable=self.palette_var, value=value
-            ).pack(side="left", padx=5)
-
+        # Map display label to internal key
+        self.palette_label_to_key = {
+            "8-bit Greyscale       (1 byte/pixel)": "L",
+            "8-bit RGB332          (1 byte/pixel)": "RGB332",
+            "15-bit RGB555         (2 bytes/pixel)": "RGB555",
+            "16-bit RGB565         (2 bytes/pixel)": "RGB565",
+            "16-bit BGR565         (2 bytes/pixel)": "BGR565",
+            "24-bit RGB            (3 bytes/pixel)": "RGB",
+            "32-bit RGBA           (4 bytes/pixel)": "RGBA",
+        }
+        self.palette_label_var = tk.StringVar(value="16-bit RGB565         (2 bytes/pixel)")
+        tk.OptionMenu(
+            row1,
+            self.palette_label_var,
+            *palette_options
+        ).pack(side="left", padx=5)
         # ---- Row 2: Resize ----
         row2 = tk.Frame(settings_frame)
         row2.pack(fill="x", padx=5, pady=3)
@@ -151,7 +169,6 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         tk.Label(row2, text="x").pack(side="left")
         tk.Entry(row2, textvariable=self.resize_h_var, width=6).pack(side="left", padx=3)
         tk.Label(row2, text="(fill one only to maintain aspect ratio)").pack(side="left", padx=5)
-
         # ---- Row 3: Output format ----
         row3 = tk.Frame(settings_frame)
         row3.pack(fill="x", padx=5, pady=3)
@@ -163,7 +180,6 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
                        variable=self.output_format_var, value="decimal").pack(side="left", padx=5)
         tk.Radiobutton(row3, text="Binary (0b000...)",
                        variable=self.output_format_var, value="binary" ).pack(side="left", padx=5)
-
         # ---- Row 4: Endianness ----
         row4 = tk.Frame(settings_frame)
         row4.pack(fill="x", padx=5, pady=3)
@@ -173,7 +189,6 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
                        variable=self.endian_var, value="little").pack(side="left", padx=5)
         tk.Radiobutton(row4, text="Big-endian",
                        variable=self.endian_var, value="big"   ).pack(side="left", padx=5)
-
         # ---- Row 5: Data type and multi-line ----
         row5 = tk.Frame(settings_frame)
         row5.pack(fill="x", padx=5, pady=3)
@@ -189,14 +204,12 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         self.separate_bytes_var = tk.BooleanVar(value=False)
         tk.Checkbutton(row5, text="Separate bytes of pixels",
                        variable=self.separate_bytes_var).pack(side="left", padx=5)
-
         # ---- Row 6: Image name + Convert button ----
         row6 = tk.Frame(settings_frame)
         row6.pack(fill="x", padx=5, pady=3)
         tk.Label(row6, text="Image Name:").pack(side="left")
         self.image_name_var = tk.StringVar(value="my_image")
         tk.Entry(row6, textvariable=self.image_name_var, width=20).pack(side="left", padx=5)
-
         self.convert_button = tk.Button(
             row6, text="Convert",
             state="disabled",
@@ -205,14 +218,11 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         self.convert_button.pack(side="left", padx=15)
 
     def _build_output_panel(self):
-
         out_frame = tk.LabelFrame(self, text="Result")
         out_frame.pack(fill="both", expand=True, padx=10, pady=5)
-
-        # ---- Left side: buttons + data text ----
+        # Left side: buttons + data text
         left_col = tk.Frame(out_frame)
         left_col.pack(side="left", fill="both", expand=True)
-
         # Buttons
         btn_row = tk.Frame(left_col)
         btn_row.pack(fill="x", padx=5, pady=5)
@@ -223,30 +233,29 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
             command=self._copy_to_clipboard
         )
         self.copy_btn.pack(side="left", padx=5)
-
         self.save_file_btn = tk.Button(
             btn_row, text="Save as File",
             state="disabled",
             command=self._save_as_file
         )
         self.save_file_btn.pack(side="left", padx=5)
-
         self.save_img_btn = tk.Button(
-            btn_row, text="Save Image",
+            btn_row, text="Save Preview",
             state="disabled",
             command=self._save_image
         )
         self.save_img_btn.pack(side="left", padx=5)
+        self.save_img_format_var = tk.StringVar(value="png")
+        tk.OptionMenu(btn_row, self.save_img_format_var,
+                      "png", "bmp", "jpg").pack(side="left", padx=5)
 
         # Data text widget with scrollbars
         text_frame = tk.Frame(left_col)
         text_frame.pack(fill="both", expand=True, padx=5, pady=5)
-
         scroll_y = tk.Scrollbar(text_frame, orient="vertical")
         scroll_x = tk.Scrollbar(text_frame, orient="horizontal")
         scroll_y.pack(side="right",  fill="y")
         scroll_x.pack(side="bottom", fill="x")
-
         self.data_text = tk.Text(
             text_frame,
             state="disabled",
@@ -259,13 +268,10 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         self.data_text.pack(side="left", fill="both", expand=True)
         scroll_y.config(command=self.data_text.yview)
         scroll_x.config(command=self.data_text.xview)
-
         # ---- Right side: preview pinned to top ----
         right_col = tk.Frame(out_frame)
         right_col.pack(side="right", anchor="n", padx=10, pady=5)
-
         tk.Label(right_col, text="Converted Preview").pack()
-
         converted_container = tk.Frame(
             right_col,
             width=self.preview_w,
@@ -276,7 +282,6 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         )
         converted_container.pack()
         converted_container.pack_propagate(False)
-
         self.converted_preview_label = tk.Label(converted_container, bg="white")
         self.converted_preview_label.place(relx=0.5, rely=0.5, anchor="center")
 
@@ -295,7 +300,7 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         )
         if not file_path:
             # User cancelled — go back to main menu rather than showing blank screen
-            print("User cancelled image open dialog.")
+            print("[cbit] User cancelled image open dialog.")
             return
         self.original_image = Image.open(file_path)
         filename      = os.path.basename(file_path)
@@ -311,7 +316,6 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         )
         self.label_type.config(text=f"Type: {self.original_image.format}")
         self.label_modified.config(text=f"Last modified: {modified_time}")
-
         self._update_preview(self.original_image)
         self.convert_button.config(state="normal")
 
@@ -331,19 +335,17 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         self.clipboard_clear()
         self.clipboard_append(self.output_text)
         messagebox.showinfo("Copied", "Data copied to clipboard.")
+        print("[cbit] Data copied to clipboard.")
 
-    # ---------------------------------------------------------
+
     def _save_as_file(self):
         """Save generated data to a .h / .hpp / .c / .txt file."""
         if not hasattr(self, "output_text") or not self.output_text:
             return
-
         output_dir = settings.getstr("Paths", "output_dir", fallback=str(os.path.expanduser("~")))
         if not output_dir or not os.path.isdir(output_dir):
             output_dir = str(os.path.expanduser("~"))
-
         name = self.image_name_var.get().strip() or "my_image"
-
         file_path = filedialog.asksaveasfilename(
             title="Save Data File",
             initialdir=output_dir,
@@ -351,63 +353,67 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
             defaultextension=".h",
             filetypes=[
                 ("Header File",  "*.h"),
-                ("C++ Header",   "*.hpp"),
-                ("C Source",     "*.c"),
-                ("Text File",    "*.txt"),
                 ("All Files",    "*.*"),
             ]
         )
         if not file_path:
+            print("[cbit] User cancelled file save dialog.")
             return
-
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(self.output_text)
         messagebox.showinfo("Saved", f"Data saved to:\n{file_path}")
+        print(f"[cbit] Data saved to file: {file_path}")
 
-    # ---------------------------------------------------------
     def _save_image(self):
-        """Save the converted PIL image to file."""
+        """Save the preview image to file."""
         if not self.core.converted_image:
+            print("[cbit] No converted image available to save.")
             return
-
         output_dir = settings.getstr("Paths", "output_dir", fallback=str(os.path.expanduser("~")))
         if not output_dir or not os.path.isdir(output_dir):
             output_dir = str(os.path.expanduser("~"))
-
         name = self.image_name_var.get().strip() or "my_image"
-
+        fmt  = self.save_img_format_var.get()
         file_path = filedialog.asksaveasfilename(
-            title="Save Converted Image",
+            title="Save Preview Image",
             initialdir=output_dir,
-            initialfile=name,
-            defaultextension=".png",
-            filetypes=[
-                ("PNG Image", "*.png"),
-                ("BMP Image", "*.bmp"),
-                ("All Files", "*.*"),
-            ]
+            initialfile=f"{name}.{fmt}",
+            defaultextension=f".{fmt}",
+            filetypes=[(f"{fmt.upper()} Image", f"*.{fmt}"), ("All Files", "*.*")]
         )
         if not file_path:
+            print("[cbit] User cancelled image save dialog.")
             return
 
-        # RGB565 was stored as RGB in PIL — save as-is
-        self.core.converted_image.save(file_path)
-        messagebox.showinfo("Saved", f"Image saved to:\n{file_path}")
+        # Force correct extension regardless of what user typed
+        root, ext = os.path.splitext(file_path)
+        if ext.lower() not in (".png", ".bmp", ".jpg", ".jpeg"):
+            file_path = f"{root}.{fmt}"
+        # Preview image is always RGB so save directly
+        # JPEG cannot save RGBA — flatten alpha onto white background just in case
+        img = self.core.converted_image.copy()
+        if file_path.lower().endswith((".jpg", ".jpeg")) and img.mode == "RGBA":
+            background = Image.new("RGB", img.size, (255, 255, 255))
+            background.paste(img, mask=img.split()[3])
+            img = background
+        img.save(file_path)
+        messagebox.showinfo("Saved", f"Preview saved to:\n{file_path}")
+        print(f"[cbit] Preview image saved to file: {file_path}")
 
-        # ---------------------------------------------------------
     def do_convert(self):
         """Run conversion with current settings and populate output panel."""
         if not self.original_image:
             return
-
+        palette_mode = self.palette_label_to_key[self.palette_label_var.get()]
         raw = self.core.convert(
             self.original_image,
-            palette_mode = self.palette_var.get(),
-            endian       = self.endian_var.get(),
-            resize_w     = self.resize_w_var.get(),
-            resize_h     = self.resize_h_var.get(),
+            opts = ConvertOptions(
+                palette_mode = palette_mode,
+                endian       = self.endian_var.get(),
+                resize_w     = self.resize_w_var.get(),
+                resize_h     = self.resize_h_var.get(),
+            )
         )
-
         self.output_text = self.core.format_bytes(
             raw_bytes = raw,
             opts      = FormatOptions(
@@ -416,27 +422,23 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
                 image_name     = self.image_name_var.get().strip() or "my_image",
                 multiline      = self.multiline_var.get(),
                 separate_bytes = self.separate_bytes_var.get(),
-                palette_mode   = self.palette_var.get(),
+                palette_mode = palette_mode,
             )
         )
-
         # Populate data text widget
         self.data_text.config(state="normal")
         self.data_text.delete("1.0", tk.END)
         self.data_text.insert(tk.END, self.output_text)
         self.data_text.config(state="disabled")
-
         # Update converted preview
         self._update_converted_preview(self.core.converted_image)
-
         # Enable output buttons
         self.copy_btn.config(state="normal")
         self.save_file_btn.config(state="normal")
         self.save_img_btn.config(state="normal")
+        print(f"[cbit] Conversion complete: {len(raw)} bytes")
 
-        print(f"Conversion complete: {len(raw)} bytes")
 
-    # ---------------------------------------------------------
     def _update_converted_preview(self, pil_image):
         """Display the converted image in the bottom preview."""
         img = pil_image.copy()
@@ -461,31 +463,21 @@ class ColourBitCore:
         self.raw_bytes    = []
         self.converted_image = None  # PIL image after palette conversion and resize
 
-    def convert(self, pil_image, palette_mode, endian, resize_w=None, resize_h=None):  # pylint: disable=too-many-arguments
-        """
-        Main entry point. Takes a PIL image and settings,
-        returns a flat list of bytes ready for formatting.
-        """
-        self.palette_mode = palette_mode
-        self.endian       = endian
-
-        # Step 1: resize if requested
-        img = self._apply_resize(pil_image, resize_w, resize_h)
-
-        # Step 2: convert to target colour mode
-        img = self._apply_palette(img, palette_mode)
-        self.converted_image = img
+    def convert(self, pil_image, opts: ConvertOptions):
+        """Main entry point. Takes a PIL image and settings,
+        returns a flat list of bytes ready for formatting."""
+        self.palette_mode = opts.palette_mode
+        self.endian       = opts.endian
+        img = self._apply_resize(pil_image, opts.resize_w, opts.resize_h)
+        img = self._apply_palette(img, opts.palette_mode)
         self.width, self.height = img.size
-
-        # Step 3: pack pixels into bytes
-        self.raw_bytes = self._pack_pixels(img, palette_mode, endian)
-
+        self.raw_bytes = self._pack_pixels(img, opts.palette_mode, opts.endian)
+        self.converted_image = self._make_preview_image(self.raw_bytes, opts.palette_mode)
         return self.raw_bytes
-    # ---------------------------------------------------------
+
     def _apply_resize(self, img, resize_w, resize_h):
         """Resize image, maintaining aspect ratio if only one dimension given."""
         orig_w, orig_h = img.size
-
         try:
             rw = int(resize_w) if resize_w and str(resize_w).strip() else None
         except ValueError:
@@ -494,94 +486,162 @@ class ColourBitCore:
             rh = int(resize_h) if resize_h and str(resize_h).strip() else None
         except ValueError:
             rh = None
-
         if rw and rh:
             return img.resize((rw, rh), LANCZOS)
-
         if rw:
             rh = int(orig_h * rw / orig_w)
             return img.resize((rw, rh), LANCZOS)
-
         if rh:
             rw = int(orig_w * rh / orig_h)
             return img.resize((rw, rh), LANCZOS)
 
         return img.copy()
 
-    # ---------------------------------------------------------
     def _apply_palette(self, img, palette_mode):
         """Convert PIL image to the target colour mode."""
         if palette_mode == "L":
-            # 8-bit greyscale
             return img.convert("L")
-
-        if palette_mode == "RGB":
-            # 24-bit RGB
+        if palette_mode in ("RGB", "RGB332"):
             return img.convert("RGB")
-
+        if palette_mode in ("RGB565", "BGR565", "RGB555"):
+            # No native PIL support — convert to RGB, packing done in _pack_pixels
+            return img.convert("RGB")
         if palette_mode == "RGBA":
-            # 32-bit RGBA — ensure alpha channel exists
             return img.convert("RGBA")
-
-        if palette_mode == "RGB565":
-            # PIL has no native RGB565 — convert to RGB first,
-            # pixel packing handled in _pack_pixels
-            return img.convert("RGB")
-
         return img.copy()
 
-    # ---------------------------------------------------------
-    def _pack_pixels(self, img, palette_mode, endian):
+    def _make_preview_image(self, raw_bytes, palette_mode):
+        """Build a viewable RGB preview image from packed bytes
+        so colour reduction is visible in the preview."""
+        img_out = Image.new("RGB", (self.width, self.height))
+        pixels  = []
+        i       = 0
+        for _ in range(self.width * self.height):
+            rgb, i = self._unpack_pixel(raw_bytes, i, palette_mode)
+            pixels.append(rgb)
+        img_out.putdata(pixels)
+        return img_out
+
+    def _pack_pixels(self, img, palette_mode, endian):  # pylint: disable=too-many-branches
         """Pack image pixels into a flat byte list."""
-        raw = []
+        raw    = []
         pixels = list(img.getdata())
-
         for pixel in pixels:
-
             if palette_mode == "L":
-                # 8-bit greyscale — 1 byte per pixel
+                # 8-bit greyscale — 1 byte
                 raw.append(pixel & 0xFF)
-
-            elif palette_mode == "RGB":
-                # 24-bit RGB — 3 bytes per pixel
+            elif palette_mode == "RGB332":
+                # 8-bit RGB332 — RRRGGGBB — 1 byte
                 r, g, b = pixel
-                raw.extend([r & 0xFF, g & 0xFF, b & 0xFF])
-
-            elif palette_mode == "RGBA":
-                # 32-bit RGBA — 4 bytes per pixel
-                r, g, b, a = pixel
-                raw.extend([r & 0xFF, g & 0xFF, b & 0xFF, a & 0xFF])
-
+                value = ((r & 0xE0)) | ((g & 0xE0) >> 3) | (b >> 6)
+                raw.append(value & 0xFF)
+            elif palette_mode == "RGB555":
+                # 15-bit RGB555 — RRRRRGGGGGBBBBB, MSB always 0 — 2 bytes
+                r, g, b = pixel
+                value = ((r & 0xF8) << 7) | ((g & 0xF8) << 2) | (b >> 3)
+                if endian == "little":
+                    raw.append(value & 0xFF)
+                    raw.append((value >> 8) & 0xFF)
+                else:
+                    raw.append((value >> 8) & 0xFF)
+                    raw.append(value & 0xFF)
             elif palette_mode == "RGB565":
-                # 16-bit RGB565 — pack into 2 bytes
-                # Format: RRRRRGGGGGGBBBBB
+                # 16-bit RGB565 — RRRRRGGGGGGBBBBB — 2 bytes
                 r, g, b = pixel
                 value = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)
                 if endian == "little":
-                    raw.append(value & 0xFF)         # low byte first
-                    raw.append((value >> 8) & 0xFF)  # high byte second
+                    raw.append(value & 0xFF)
+                    raw.append((value >> 8) & 0xFF)
                 else:
-                    raw.append((value >> 8) & 0xFF)  # high byte first
-                    raw.append(value & 0xFF)          # low byte second
-
+                    raw.append((value >> 8) & 0xFF)
+                    raw.append(value & 0xFF)
+            elif palette_mode == "BGR565":
+                # 16-bit BGR565 — BBBBBGGGGGGRRRRR — 2 bytes (byte-reversed RGB565)
+                r, g, b = pixel
+                value = ((b & 0xF8) << 8) | ((g & 0xFC) << 3) | (r >> 3)
+                if endian == "little":
+                    raw.append(value & 0xFF)
+                    raw.append((value >> 8) & 0xFF)
+                else:
+                    raw.append((value >> 8) & 0xFF)
+                    raw.append(value & 0xFF)
+            elif palette_mode == "RGB":
+                # 24-bit RGB — 3 bytes
+                r, g, b = pixel
+                raw.extend([r & 0xFF, g & 0xFF, b & 0xFF])
+            elif palette_mode == "RGBA":
+                # 32-bit RGBA — 4 bytes
+                r, g, b, a = pixel
+                raw.extend([r & 0xFF, g & 0xFF, b & 0xFF, a & 0xFF])
         return raw
 
-    # ---------------------------------------------------------
+    def _unpack_pixel(self, raw_bytes, i, palette_mode):
+        """Unpack a single pixel from raw_bytes at index i.
+        Returns (r, g, b) tuple and updated index."""
+        r, g, b  = 0, 0, 0
+        step     = 1
+        if palette_mode == "L":
+            v = raw_bytes[i]
+            r, g, b = v, v, v
+        elif palette_mode == "RGB332":
+            v = raw_bytes[i]
+            r, g, b = (v & 0xE0), (v & 0x1C) << 3, (v & 0x03) << 6
+        elif palette_mode == "RGB":
+            r, g, b = raw_bytes[i], raw_bytes[i+1], raw_bytes[i+2]
+            step = 3
+        elif palette_mode == "RGBA":
+            r, g, b = raw_bytes[i], raw_bytes[i+1], raw_bytes[i+2]
+            step = 4  # skip alpha
+        else:
+            # 2-byte formats
+            v = raw_bytes[i] | (raw_bytes[i + 1] << 8)
+            step = 2
+            if palette_mode == "RGB555":
+                r, g, b = (v >> 7) & 0xF8, (v >> 2) & 0xF8, (v << 3) & 0xF8
+            elif palette_mode == "RGB565":
+                r, g, b = (v >> 8) & 0xF8, (v >> 3) & 0xFC, (v << 3) & 0xF8
+            elif palette_mode == "BGR565":
+                r, g, b = (v << 3) & 0xF8, (v >> 3) & 0xFC, (v >> 8) & 0xF8
+        return (r, g, b), i + step
+
     def format_bytes(self, raw_bytes, opts: FormatOptions):
-        """Format raw bytes into a C array string."""
+        """Format raw bytes into a C array string.
+        separate_bytes OFF: pack bytes into array elements matching datatype size
+        separate_bytes ON:  every byte is its own element regardless of datatype
+        """
         bytes_per_pixel = {
             "L":      1,
+            "RGB332": 1,
+            "RGB555": 2,
+            "RGB565": 2,
+            "BGR565": 2,
             "RGB":    3,
             "RGBA":   4,
-            "RGB565": 2,
         }.get(opts.palette_mode, 1)
 
-        bytes_per_line = (
-            self.width * bytes_per_pixel if opts.multiline
-            else len(raw_bytes)
-        )
+        # How many bytes each array element holds based on datatype
+        bytes_per_element = {
+            "byte":     1,
+            "uint8_t":  1,
+            "uint16_t": 2,
+            "uint32_t": 4,
+        }.get(opts.datatype, 1)
 
-        def fmt(b):
+        # How wide each formatted element value should be
+        element_hex_digits = bytes_per_element * 2  # e.g. uint32_t = 8 hex digits
+
+        def fmt_element(value, nbytes):
+            """Format a multi-byte value as a single element."""
+            if opts.output_format == "hex":
+                return f"0x{value:0{element_hex_digits}X}"
+            if opts.output_format == "decimal":
+                return str(value)
+            if opts.output_format == "binary":
+                return f"0b{value:0{nbytes * 8}b}"
+            return str(value)
+
+        def fmt_byte(b):
+            """Format a single byte."""
             if opts.output_format == "hex":
                 return f"0x{b:02X}"
             if opts.output_format == "decimal":
@@ -590,28 +650,55 @@ class ColourBitCore:
                 return f"0b{b:08b}"
             return str(b)
 
-        formatted = [fmt(b) for b in raw_bytes]
-        lines     = []
+        # Build list of formatted elements
+        elements = []
 
-        if opts.separate_bytes and bytes_per_pixel > 1:
-            for i in range(0, len(formatted), bytes_per_line):
-                row = formatted[i:i + bytes_per_line]
-                pixels_in_row = [
-                    ", ".join(row[p:p + bytes_per_pixel])
-                    for p in range(0, len(row), bytes_per_pixel)
-                ]
-                lines.append("    " + ",  ".join(pixels_in_row))
+        if opts.separate_bytes:
+            # Every byte is its own element regardless of datatype
+            elements = [fmt_byte(b) for b in raw_bytes]
+            elements_per_line = self.width * bytes_per_pixel if opts.multiline else len(elements)
+
         else:
-            for i in range(0, len(formatted), bytes_per_line):
-                lines.append("    " + ", ".join(formatted[i:i + bytes_per_line]))
+            # Pack bytes into elements matching datatype size
+            # Walk pixel by pixel, pack each pixel's bytes into one or more elements
+            i = 0
+            while i < len(raw_bytes):
+                # Collect bytes for this pixel
+                pixel_bytes = raw_bytes[i:i + bytes_per_pixel]
+                i += bytes_per_pixel
 
+                if bytes_per_element >= bytes_per_pixel:
+                    # Entire pixel fits in one element — pack all bytes into one value
+                    value = 0
+                    for b in pixel_bytes:
+                        value = (value << 8) | b
+                    elements.append(fmt_element(value, bytes_per_pixel))
+                else:
+                    # Pixel spans multiple elements — split pixel bytes into chunks
+                    for chunk_start in range(0, bytes_per_pixel, bytes_per_element):
+                        chunk = pixel_bytes[chunk_start:chunk_start + bytes_per_element]
+                        value = 0
+                        for b in chunk:
+                            value = (value << 8) | b
+                        elements.append(fmt_element(value, len(chunk)))
+
+            elements_per_line = self.width if opts.multiline else len(elements)
+
+        # Group elements into lines
+        lines = []
+        for i in range(0, len(elements), elements_per_line):
+            lines.append("    " + ", ".join(elements[i:i + elements_per_line]))
         body = ",\n".join(lines)
 
+        # Build file
         mode_labels = {
             "L":      "8-bit Greyscale",
+            "RGB332": "8-bit RGB332",
+            "RGB555": "15-bit RGB555",
+            "RGB565": "16-bit RGB565",
+            "BGR565": "16-bit BGR565",
             "RGB":    "24-bit RGB",
             "RGBA":   "32-bit RGBA",
-            "RGB565": "16-bit RGB565",
         }
         guard = f"{opts.image_name.upper()}_H"
 
@@ -627,6 +714,9 @@ class ColourBitCore:
             f"// Dimensions   : {self.width} x {self.height} px\n"
             f"// Colour Mode  : {mode_labels.get(opts.palette_mode, opts.palette_mode)}\n"
             f"// Data Size    : {len(raw_bytes)} bytes\n"
+            f"// Elements     : {len(elements)}\n"
+            f"// Datatype     : {opts.datatype}\n"
+            f"// Separate bytes: {'Yes' if opts.separate_bytes else 'No'}\n"
             f"// Endianness   : {self.endian}-endian\n"
             f"// -------------------------------------------------------\n"
             f"\n"
@@ -641,6 +731,6 @@ class ColourBitCore:
         )
 
 if __name__ == "__main__":
-    print("This is a module, not a standalone script.")
+    print("[cbit] This is a module, not a standalone script.")
 else:
-    print("Colour bit image convertor module loaded.")
+    print("[cbit] Module loaded.")

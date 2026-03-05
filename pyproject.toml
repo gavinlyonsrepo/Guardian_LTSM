@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "guardian-ltsm"
 version = "0.1.0"
-keywords = ["bitmap", "converter", "embedded", "lcd", "gui"]
+keywords = ["bitmap", "converter", "embedded", "lcd", "gui", "images"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python :: 3",
