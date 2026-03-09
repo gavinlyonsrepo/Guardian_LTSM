@@ -131,7 +131,7 @@ const uint8_t my_image[] = {
 | Resize | Optional resize before conversion. Fill one field only to maintain aspect ratio |
 | Output Format | Hex (0x00), Decimal, or Binary (0b00000000) |
 | Endianness | Little-endian or Big-endian byte order (affects 16-bit modes) |
-| Data Type | Array element type: `byte`, `uint8_t`, `uint16_t`, `uint32_t` |
+| Data Type | Array element type:  `uint8_t`, `uint16_t`, `uint32_t` |
 | Multi-line | One row of pixels per line in the output array |
 | Separate bytes | Each byte is its own array element. When off, bytes are packed into elements matching the data type size |
 | Image Name | Variable name used in the C array declaration |
@@ -145,7 +145,7 @@ const uint8_t my_image[] = {
 | ---- | -------------- | --------------- |
 | 8-bit Greyscale | 8 | 1 |
 | 8-bit RGB332 | 8 | 1 |
-| 15-bit RGB555 | 15 | 2 |
+| 15-bit RGBA555 | 15 | 2 |
 | 16-bit RGB565 | 16 | 2 |
 | 16-bit BGR565 | 16 | 2 |
 | 24-bit RGB | 24 | 3 |

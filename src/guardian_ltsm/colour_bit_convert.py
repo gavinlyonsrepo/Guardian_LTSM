@@ -184,17 +184,25 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
         row4 = tk.Frame(settings_frame)
         row4.pack(fill="x", padx=5, pady=3)
         tk.Label(row4, text="Endianness:").pack(side="left")
-        self.endian_var = tk.StringVar(value="little")
-        tk.Radiobutton(row4, text="Little-endian",
-                       variable=self.endian_var, value="little").pack(side="left", padx=5)
-        tk.Radiobutton(row4, text="Big-endian",
-                       variable=self.endian_var, value="big"   ).pack(side="left", padx=5)
+        self.endian_var = tk.StringVar(value="big")
+        self.endian_little_rb = tk.Radiobutton(
+            row4, text="Little-endian",
+            variable=self.endian_var, value="little"
+        )
+        self.endian_little_rb.pack(side="left", padx=5)
+        tk.Radiobutton(
+            row4, text="Big-endian",
+            variable=self.endian_var, value="big"
+        ).pack(side="left", padx=5)
+        self.endian_note = tk.Label(row4, text="(ignored for uint8_t)", fg="grey")
+        self.endian_note.pack(side="left", padx=5)
         # ---- Row 5: Data type and multi-line ----
         row5 = tk.Frame(settings_frame)
         row5.pack(fill="x", padx=5, pady=3)
         tk.Label(row5, text="Data Type:").pack(side="left")
         self.datatype_var = tk.StringVar(value="uint8_t")
-        data_types = ["byte", "uint8_t", "uint16_t", "uint32_t"]
+        self.datatype_var.trace_add("write", self._on_datatype_change)
+        data_types = ["uint8_t", "uint16_t", "uint32_t"]
         tk.OptionMenu(row5, self.datatype_var, *data_types).pack(side="left", padx=5)
 
         self.multiline_var = tk.BooleanVar(value=True)
@@ -216,6 +224,19 @@ class ColourBitConverter(tk.Frame): # pylint: disable=too-many-instance-attribut
             command=self.do_convert
         )
         self.convert_button.pack(side="left", padx=15)
+        # Apply initial state based on default datatype
+        self._on_datatype_change()
+
+    def _on_datatype_change(self, *args):
+        """Disable endianness selection for uint8_t/byte as it has no effect."""
+        dtype = self.datatype_var.get()
+        if dtype in ("uint8_t"):
+            self.endian_var.set("big")
+            self.endian_little_rb.config(state="disabled")
+            self.endian_note.config(text="(ignored for uint8_t)")
+        else:
+            self.endian_little_rb.config(state="normal")
+            self.endian_note.config(text="")
 
     def _build_output_panel(self):
         out_frame = tk.LabelFrame(self, text="Result")
@@ -503,9 +524,11 @@ class ColourBitCore:
             return img.convert("L")
         if palette_mode in ("RGB", "RGB332"):
             return img.convert("RGB")
-        if palette_mode in ("RGB565", "BGR565", "RGB555"):
-            # No native PIL support — convert to RGB, packing done in _pack_pixels
+        if palette_mode in ("RGB565", "BGR565"):
+             # No native PIL support — convert to RGB, packing done in _pack_pixels
             return img.convert("RGB")
+        if palette_mode == "RGB555":
+            return img.convert("RGBA")  # preserve alpha
         if palette_mode == "RGBA":
             return img.convert("RGBA")
         return img.copy()
@@ -537,8 +560,9 @@ class ColourBitCore:
                 raw.append(value & 0xFF)
             elif palette_mode == "RGB555":
                 # 15-bit RGB555 — RRRRRGGGGGBBBBB, MSB always 0 — 2 bytes
-                r, g, b = pixel
-                value = ((r & 0xF8) << 7) | ((g & 0xF8) << 2) | (b >> 3)
+                r, g, b, a = pixel
+                alpha_bit = 1 if a > 0 else 0
+                value = ((r & 0xF8) << 7) | ((g & 0xF8) << 2) | (b >> 3) | alpha_bit
                 if endian == "little":
                     raw.append(value & 0xFF)
                     raw.append((value >> 8) & 0xFF)
@@ -593,8 +617,11 @@ class ColourBitCore:
             r, g, b = raw_bytes[i], raw_bytes[i+1], raw_bytes[i+2]
             step = 4  # skip alpha
         else:
-            # 2-byte formats
-            v = raw_bytes[i] | (raw_bytes[i + 1] << 8)
+            # 2-byte formats - unpack matching endian setting
+            if self.endian == "little":
+                v = raw_bytes[i] | (raw_bytes[i + 1] << 8)
+            else:
+                v = (raw_bytes[i] << 8) | raw_bytes[i + 1]
             step = 2
             if palette_mode == "RGB555":
                 r, g, b = (v >> 7) & 0xF8, (v >> 2) & 0xF8, (v << 3) & 0xF8
@@ -621,7 +648,6 @@ class ColourBitCore:
 
         # How many bytes each array element holds based on datatype
         bytes_per_element = {
-            "byte":     1,
             "uint8_t":  1,
             "uint16_t": 2,
             "uint32_t": 4,
@@ -701,6 +727,7 @@ class ColourBitCore:
             "RGBA":   "32-bit RGBA",
         }
         guard = f"{opts.image_name.upper()}_H"
+        endian_note = "N/A (single byte datatype)" if opts.datatype == "uint8_t" else f"{self.endian}-endian"
 
         return (
             f"#ifndef {guard}\n"
@@ -717,7 +744,7 @@ class ColourBitCore:
             f"// Elements     : {len(elements)}\n"
             f"// Datatype     : {opts.datatype}\n"
             f"// Separate bytes: {'Yes' if opts.separate_bytes else 'No'}\n"
-            f"// Endianness   : {self.endian}-endian\n"
+            f"// Endianness   : {endian_note}\n"
             f"// -------------------------------------------------------\n"
             f"\n"
             f"#define {opts.image_name.upper()}_WIDTH   {self.width}\n"

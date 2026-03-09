@@ -3,4 +3,4 @@ stuff/
 .venv/
 __pycache__/
 dist/
-src/colossus_ltsm.egg-info/
+src/guardian_ltsm.egg-info/
