@@ -34,7 +34,8 @@ It provides two conversion pipelines:
 ## Installation
 
 1. [Github repository](https://www.github.com/gavinlyonsrepo/Guardian_LTSM)
-2. [Pypi package](https://pypi.org/project/guardian-ltsm/)
+2. [Arch Linux AUR](https://aur.archlinux.org/packages/guardian)
+3. [Pypi package](https://pypi.org/project/guardian-ltsm/)
 
 The program is present in the Python Package Index, PyPI.
 Install (you can use *pip* or *pipx*) to the location or environment of your choice.

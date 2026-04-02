@@ -1,0 +1,80 @@
+\doxysection{guardian\+\_\+ltsm.\+settings.\+Settings Class Reference}
+\hypertarget{classguardian__ltsm_1_1settings_1_1Settings}{}\label{classguardian__ltsm_1_1settings_1_1Settings}\index{guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}}
+\doxysubsubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classguardian__ltsm_1_1settings_1_1Settings_a598783cac42270d7868eeed3c7267457}\label{classguardian__ltsm_1_1settings_1_1Settings_a598783cac42270d7868eeed3c7267457} 
+{\bfseries \+\_\+\+\_\+init\+\_\+\+\_\+} (self)
+\item 
+\mbox{\hyperlink{classguardian__ltsm_1_1settings_1_1Settings_afd74e5a55780161113776731eaf8154e}{load}} (self)
+\item 
+\mbox{\hyperlink{classguardian__ltsm_1_1settings_1_1Settings_ac6138f588617d53c27d177fdda124ecd}{save}} (self)
+\item 
+\mbox{\hyperlink{classguardian__ltsm_1_1settings_1_1Settings_af46ec4e4163dc920c2b009f53684c070}{getint}} (self, section, option, fallback)
+\item 
+\mbox{\hyperlink{classguardian__ltsm_1_1settings_1_1Settings_a60059a67d68e6190dedf8e0c26b0951c}{getbool}} (self, section, option, fallback=False)
+\item 
+\mbox{\hyperlink{classguardian__ltsm_1_1settings_1_1Settings_a7e0e5b4f9d533ade36687750d54fa836}{getstr}} (self, section, option, fallback="{}"{})
+\item 
+\mbox{\hyperlink{classguardian__ltsm_1_1settings_1_1Settings_a24f19a5fae5f8c6493502139720e0b6b}{set}} (self, section, option, value)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{classguardian__ltsm_1_1settings_1_1Settings_a49a97b1050e363f4573af638cdf6ffbf}\label{classguardian__ltsm_1_1settings_1_1Settings_a49a97b1050e363f4573af638cdf6ffbf} 
+{\bfseries config}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\begin{DoxyVerb}Singleton class to manage application settings.\end{DoxyVerb}
+ 
+
+\doxysubsection{Member Function Documentation}
+\Hypertarget{classguardian__ltsm_1_1settings_1_1Settings_a60059a67d68e6190dedf8e0c26b0951c}\label{classguardian__ltsm_1_1settings_1_1Settings_a60059a67d68e6190dedf8e0c26b0951c} 
+\index{guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}!getbool@{getbool}}
+\index{getbool@{getbool}!guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}}
+\doxysubsubsection{\texorpdfstring{getbool()}{getbool()}}
+{\footnotesize\ttfamily guardian\+\_\+ltsm.\+settings.\+Settings.\+getbool (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{section,  }\item[{}]{option,  }\item[{}]{fallback = {\ttfamily False} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Get a boolean setting (0/1 or true/false).\end{DoxyVerb}
+ \Hypertarget{classguardian__ltsm_1_1settings_1_1Settings_af46ec4e4163dc920c2b009f53684c070}\label{classguardian__ltsm_1_1settings_1_1Settings_af46ec4e4163dc920c2b009f53684c070} 
+\index{guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}!getint@{getint}}
+\index{getint@{getint}!guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}}
+\doxysubsubsection{\texorpdfstring{getint()}{getint()}}
+{\footnotesize\ttfamily guardian\+\_\+ltsm.\+settings.\+Settings.\+getint (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{section,  }\item[{}]{option,  }\item[{}]{fallback }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Get an integer setting with a fallback value.\end{DoxyVerb}
+ \Hypertarget{classguardian__ltsm_1_1settings_1_1Settings_a7e0e5b4f9d533ade36687750d54fa836}\label{classguardian__ltsm_1_1settings_1_1Settings_a7e0e5b4f9d533ade36687750d54fa836} 
+\index{guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}!getstr@{getstr}}
+\index{getstr@{getstr}!guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}}
+\doxysubsubsection{\texorpdfstring{getstr()}{getstr()}}
+{\footnotesize\ttfamily guardian\+\_\+ltsm.\+settings.\+Settings.\+getstr (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{section,  }\item[{}]{option,  }\item[{}]{fallback = {\ttfamily "{}"{}} }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Get a string setting with a fallback value.\end{DoxyVerb}
+ \Hypertarget{classguardian__ltsm_1_1settings_1_1Settings_afd74e5a55780161113776731eaf8154e}\label{classguardian__ltsm_1_1settings_1_1Settings_afd74e5a55780161113776731eaf8154e} 
+\index{guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}!load@{load}}
+\index{load@{load}!guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}}
+\doxysubsubsection{\texorpdfstring{load()}{load()}}
+{\footnotesize\ttfamily guardian\+\_\+ltsm.\+settings.\+Settings.\+load (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Load settings from the config file, or use defaults.\end{DoxyVerb}
+ \Hypertarget{classguardian__ltsm_1_1settings_1_1Settings_ac6138f588617d53c27d177fdda124ecd}\label{classguardian__ltsm_1_1settings_1_1Settings_ac6138f588617d53c27d177fdda124ecd} 
+\index{guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}!save@{save}}
+\index{save@{save}!guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}}
+\doxysubsubsection{\texorpdfstring{save()}{save()}}
+{\footnotesize\ttfamily guardian\+\_\+ltsm.\+settings.\+Settings.\+save (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Save the current settings to the config file.\end{DoxyVerb}
+ \Hypertarget{classguardian__ltsm_1_1settings_1_1Settings_a24f19a5fae5f8c6493502139720e0b6b}\label{classguardian__ltsm_1_1settings_1_1Settings_a24f19a5fae5f8c6493502139720e0b6b} 
+\index{guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}!set@{set}}
+\index{set@{set}!guardian\_ltsm.settings.Settings@{guardian\_ltsm.settings.Settings}}
+\doxysubsubsection{\texorpdfstring{set()}{set()}}
+{\footnotesize\ttfamily guardian\+\_\+ltsm.\+settings.\+Settings.\+set (\begin{DoxyParamCaption}\item[{}]{self,  }\item[{}]{section,  }\item[{}]{option,  }\item[{}]{value }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Set a config value and save.\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+settings.\+py\end{DoxyCompactItemize}

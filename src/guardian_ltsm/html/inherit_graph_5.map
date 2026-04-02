@@ -1,0 +1,17 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="Node000000" title=" " alt="" coords="5,205,85,230"/>
+<area shape="rect" id="Node000001" href="$classguardian__ltsm_1_1colour__bit__convert_1_1ColourBitConverter.html" title=" " alt="" coords="133,5,364,45"/>
+<area shape="poly" id="edge1_Node000000_Node000001" title=" " alt="" coords="51,190,62,159,79,123,102,86,132,55,151,43,154,48,135,59,106,90,84,125,67,161,56,192"/>
+<area shape="rect" id="Node000002" href="$classguardian__ltsm_1_1guardian__main_1_1AboutPage.html" title=" " alt="" coords="161,69,337,109"/>
+<area shape="poly" id="edge2_Node000000_Node000002" title=" " alt="" coords="60,191,91,154,132,119,159,106,162,110,135,124,95,158,65,195"/>
+<area shape="rect" id="Node000003" href="$classguardian__ltsm_1_1guardian__main_1_1ColourConvertPage.html" title=" " alt="" coords="153,133,344,173"/>
+<area shape="poly" id="edge3_Node000000_Node000003" title=" " alt="" coords="91,197,133,183,171,171,173,176,134,188,93,202"/>
+<area shape="rect" id="Node000004" href="$classguardian__ltsm_1_1guardian__main_1_1MainMenu.html" title=" " alt="" coords="161,197,337,237"/>
+<area shape="poly" id="edge4_Node000000_Node000004" title=" " alt="" coords="99,215,161,215,161,220,99,220"/>
+<area shape="rect" id="Node000005" href="$classguardian__ltsm_1_1guardian__main_1_1OneBitConvertPage.html" title=" " alt="" coords="153,261,345,301"/>
+<area shape="poly" id="edge5_Node000000_Node000005" title=" " alt="" coords="93,232,134,247,173,259,171,264,133,252,91,237"/>
+<area shape="rect" id="Node000006" href="$classguardian__ltsm_1_1guardian__main_1_1SettingsPage.html" title=" " alt="" coords="161,325,337,365"/>
+<area shape="poly" id="edge6_Node000000_Node000006" title=" " alt="" coords="65,240,95,277,135,311,162,324,159,329,132,316,91,281,60,243"/>
+<area shape="rect" id="Node000007" href="$classguardian__ltsm_1_1one__bit__convert_1_1OneBitConverter.html" title=" " alt="" coords="153,389,344,429"/>
+<area shape="poly" id="edge7_Node000000_Node000007" title=" " alt="" coords="56,242,67,273,84,309,106,345,135,375,154,387,151,392,132,379,102,348,79,312,62,275,51,244"/>
+</map>
